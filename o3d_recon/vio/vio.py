@@ -1,7 +1,7 @@
-
 from queue import Queue
 from threading import Thread
 
+import coord_transform as ct
 from o3d_recon.vio.image import ImageProcessor
 from o3d_recon.vio.config import ConfigEuRoC
 from o3d_recon.vio.msckf import MSCKF
@@ -26,15 +26,18 @@ class VIO(object):
         self.imu_thread.start()
         self.vio_thread.start()
 
+        self.pose = None
+
     def process_img(self):
         while True:
             img_msg = self.img_queue.get()
+
             if img_msg is None:
                 self.feature_queue.put(None)
                 return
-            # print('img_msg', img_msg.timestamp)
 
             feature_msg = self.image_processor.stareo_callback(img_msg)
+
             if feature_msg is not None:
                 self.feature_queue.put(feature_msg)
 
@@ -49,17 +52,24 @@ class VIO(object):
             self.msckf.imu_callback(imu_msg)
 
     def process_feature(self):
-
         while True:
             feature_msg = self.feature_queue.get()
+
             if feature_msg is None:
                 return
 
             result = self.msckf.feature_callback(feature_msg)
 
             if result is not None:
-                print("R:", result.pose.R)
-                print("T:", result.pose.t)
+                pose = ct.Matrix()
+                pose.set_rmat(result.pose.R)
+                pose.set_tvec(result.pose.t)
+
+                self.pose = pose.get_T()
+                # self.R = result.pose.R
+                # self.t = result.pose.t
+                # print("R:", result.pose.R)
+                # print("T:", result.pose.t)
                 # print('   orientation:', result.orientation)
                 # print('   position:', result.position)
 

@@ -325,8 +325,9 @@ class ReconstructionWindow:
 
                 t1 = time.time() * 1000
                 pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth, imu)
-                print(curr_colors.shape)
-                print(curr_points.shape)
+                # print(curr_colors.shape)
+                # print(curr_points.shape)
+                # print()
                 # print(curr_colors.shape, curr_colors.shape)
                 t2 = time.time() * 1000
                 t = t2 - t1

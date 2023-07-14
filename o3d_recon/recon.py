@@ -2,6 +2,7 @@ import time
 from collections import namedtuple
 import cv2
 import numpy as np
+from queue import Queue
 
 import open3d as o3d
 import open3d.core as o3c
@@ -34,6 +35,11 @@ class RealtimeRecon:
 
         self.T_frame_to_model = o3c.Tensor(np.identity(4))
         self.T_frame_to_model_vio = o3c.Tensor(np.identity(4))
+
+        self.vio_img_queue = Queue()
+        self.vio_imu_queue = Queue()
+
+        self.vio = VIO(self.vio_img_queue, self.vio_imu_queue)
 
         self.timestamp = time.time()
         self.imu = None
@@ -76,9 +82,6 @@ class RealtimeRecon:
             self.set_raycast()
 
         self.get_pose()
-        # self.get_pose_vio()
-        # if imu is None:
-        #     self.get_pose()
         # if imu is not None:
         #     self.get_pose_vio()
 
@@ -142,28 +145,28 @@ class RealtimeRecon:
             )
 
             self.T_frame_to_model = self.T_frame_to_model @ result.transformation
-            # print(self.T_frame_to_model)
 
     def get_pose_vio(self):
         gray = cv2.cvtColor(self.color_raw, cv2.COLOR_BGR2GRAY)
+        gray = cv2.resize(gray, [752, 480])
+
         gray_msg = namedtuple('img_msg', ['timestamp', 'image'])(self.timestamp, gray)
 
         imu_msg = namedtuple('imu_msg', ['timestamp', 'angular_velocity', 'linear_acceleration'])(
             self.timestamp, self.imu.angular_velocity, self.imu.linear_acceleration)
 
-        img_msg = namedtuple('stereo_msg', ['timestamp', 'cam0_image', 'cam1_image' ,'cam0_msg' 'cam1_msg'])(
+        img_msg = namedtuple('stereo_msg', ['timestamp', 'cam0_image', 'cam1_image' ,'cam0_msg', 'cam1_msg'])(
             self.timestamp, gray, gray, gray_msg, gray_msg)
 
+        self.vio_img_queue.put(img_msg)
+        self.vio_imu_queue.put(imu_msg)
 
-        pose = ct.Matrix()
-        # pose.set_rmat()
-        # pose.set_tvec()
+        if self.vio.pose is not None:
+            # print(self.vio.pose)
+            pose = o3c.Tensor(self.vio.pose)
+            # print(pose)
 
-
-
-        # self.T_frame_to_model_vio = self.T_frame_to_model_vio @ pose.get_T()
-        self.T_frame_to_model_vio = pose.get_T()
-        # print(self.T_frame_to_model)
+            self.T_frame_to_model_vio = self.T_frame_to_model_vio @ pose
 
     def get_pcd(self):
         self.pcd = self.model.voxel_grid.extract_point_cloud(
