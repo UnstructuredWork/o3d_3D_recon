@@ -324,8 +324,9 @@ class ReconstructionWindow:
                 imu = sensor.get_imu()
 
                 t1 = time.time() * 1000
-                curr_points, curr_colors, pcd = slam(color, depth, imu)
-
+                pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth, imu)
+                print(curr_colors.shape)
+                print(curr_points.shape)
                 # print(curr_colors.shape, curr_colors.shape)
                 t2 = time.time() * 1000
                 t = t2 - t1

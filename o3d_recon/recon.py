@@ -85,7 +85,7 @@ class RealtimeRecon:
         self.recon()
         self.get_pcd()
 
-        return self.curr_points, self.curr_colors, self.pcd
+        return self.pcd, self.curr_points, self.curr_colors, self.prev_points, self.prev_colors
 
     def recon(self):
         # self.poses.append(self.T_frame_to_model.cpu().numpy())
@@ -142,7 +142,7 @@ class RealtimeRecon:
             )
 
             self.T_frame_to_model = self.T_frame_to_model @ result.transformation
-            print(self.T_frame_to_model)
+            # print(self.T_frame_to_model)
 
     def get_pose_vio(self):
         gray = cv2.cvtColor(self.color_raw, cv2.COLOR_BGR2GRAY)
@@ -163,7 +163,7 @@ class RealtimeRecon:
 
         # self.T_frame_to_model_vio = self.T_frame_to_model_vio @ pose.get_T()
         self.T_frame_to_model_vio = pose.get_T()
-        print(self.T_frame_to_model)
+        # print(self.T_frame_to_model)
 
     def get_pcd(self):
         self.pcd = self.model.voxel_grid.extract_point_cloud(
