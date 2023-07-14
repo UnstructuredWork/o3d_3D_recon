@@ -6,7 +6,7 @@ import numpy as np
 import open3d as o3d
 import open3d.core as o3c
 import coord_transform as ct
-# from vio.vio import VIO
+from o3d_recon.vio.vio import VIO
 
 
 class RealtimeRecon:

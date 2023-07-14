@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 # quaternion representation: [x, y, z, w]
 # JPL convention
 

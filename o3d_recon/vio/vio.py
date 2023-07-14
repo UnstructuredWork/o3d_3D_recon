@@ -2,9 +2,9 @@
 from queue import Queue
 from threading import Thread
 
-from image import ImageProcessor
-from config import ConfigEuRoC
-from msckf import MSCKF
+from o3d_recon.vio.image import ImageProcessor
+from o3d_recon.vio.config import ConfigEuRoC
+from o3d_recon.vio.msckf import MSCKF
 
 
 

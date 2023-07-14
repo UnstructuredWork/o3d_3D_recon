@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import Isometry3d, to_rotation
+from o3d_recon.vio.utils import Isometry3d, to_rotation
 
 
 
