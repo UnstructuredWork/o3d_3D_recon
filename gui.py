@@ -7,7 +7,8 @@ import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 
 from kinect import Kinect
-import o3d_recon
+from ketisdk.sensor.realsense_sensor import RSSensor
+from o3d_recon import RealtimeRecon
 
 
 def set_enabled(widget, enable):
@@ -304,27 +305,35 @@ class ReconstructionWindow:
         self.widget3d.scene.add_geometry("frustum", frustum, mat)
 
     def run_recon(self):
-        sensor = Kinect()
+        # sensor = Kinect()
+        # sensor.start(1536)
+        # intrinsic = sensor.intrinsic_color
+
+        sensor = RSSensor()
         sensor.start()
+        intrinsic = np.array([[sensor.info.fx, 0, sensor.info.cx],
+                              [0, sensor.info.fy, sensor.info.cy],
+                              [0, 0, 1]])
 
         color, depth = sensor.get_data()
 
         time.sleep(1)
 
-        intrinsic = sensor.intrinsic_color
-
-        slam = o3d_recon.RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic)
+        slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic, send_ros=True)
 
         if slam.is_started:
 
             while True:
                 start = time.time()
-
+                t11 = time.time()
                 color, depth = sensor.get_data()
-                imu = sensor.get_imu()
+                # imu = sensor.get_imu()
+                t21 = time.time()
+                print((t21 - t11) * 1000)
 
                 t1 = time.time() * 1000
-                pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth, imu)
+                pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth)
+
                 # print(curr_colors.shape)
                 # print(curr_points.shape)
                 # print()
