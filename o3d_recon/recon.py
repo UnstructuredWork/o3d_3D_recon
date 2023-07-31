@@ -14,10 +14,23 @@ import open3d.core as o3c
 import coord_transform as ct
 from o3d_recon.vio.vio import VIO
 
-import rospy
-from std_msgs.msg import Header
-from sensor_msgs.msg import PointCloud2, PointField
-import sensor_msgs.point_cloud2 as pc2
+try:
+    import rospy
+    from std_msgs.msg import Header
+    from sensor_msgs.msg import PointCloud2, PointField
+    import sensor_msgs.point_cloud2 as pc2
+except:
+    pass
+
+
+def kill_ros_node():
+    pass
+    # nodes = os.popen("rosnode list").readlines()
+    # for i in range(len(nodes)):
+    #     nodes[i] = nodes[i].replace("\n", "")
+    #
+    # for node in nodes:
+    #     os.system("rosnode kill " + node)
 
 class RealtimeRecon:
     def __init__(self,
@@ -33,6 +46,8 @@ class RealtimeRecon:
 
         self.send_ros = send_ros
         if send_ros:
+            kill_ros_node()
+
             self.ros_frame_id = 'odom'
             self.ros_publisher = None
             self.set_ros()
@@ -86,12 +101,7 @@ class RealtimeRecon:
         self.set_model()
 
     def shutdown_ros(self):
-        nodes = os.popen("rosnode list").readlines()
-        for i in range(len(nodes)):
-            nodes[i] = nodes[i].replace("\n", "")
-
-        for node in nodes:
-            os.system("rosnode kill " + node)
+        kill_ros_node()
 
         time.sleep(1)
         # os.system("killall -9 roscore")
@@ -136,12 +146,6 @@ class RealtimeRecon:
 
             except rospy.ROSInterruptException as e:
                 pass
-                # nodes = os.popen("rosnode list").readlines()
-                # for i in range(len(nodes)):
-                #     nodes[i] = nodes[i].replace("\n", "")
-                #
-                # for node in nodes:
-                #     os.system("rosnode kill " + node)
 
         return self.pcd, self.curr_points, self.curr_colors, self.prev_points, self.prev_colors
 
@@ -230,7 +234,8 @@ class RealtimeRecon:
         ).to(o3d.core.Device('CPU:0'))
 
         points = self.pcd.point.positions
-        colors = (self.pcd.point.colors * 255).to(o3d.core.uint8)
+        # colors = (self.pcd.point.colors * 255).to(o3d.core.uint8)
+        colors = self.pcd.point.colors
 
         self.prev_points = points[:self.prev_num_pcd, :]
         self.prev_colors = colors[:self.prev_num_pcd, :]
@@ -274,8 +279,13 @@ class RealtimeRecon:
         # fields = self.FIELDS_XYZ
         fields = self.FIELDS_XYZRGB
 
-        points = self.pcd.point.positions.numpy()
-        colors = self.pcd.point.colors.numpy()
+        # points = self.pcd.point.positions.numpy()
+        # colors = self.pcd.point.colors.numpy()
+
+        points = self.curr_points.numpy()
+        colors = self.curr_colors.numpy()
+
+        colors = colors[:, ::-1]
         colors = np.floor(colors * 255)  # nx3 matrix
 
         colors = colors.astype(np.uint32)
