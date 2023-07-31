@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import os
-
 import sys
 import time
+import psutil
 from collections import namedtuple
 from ctypes import *
 from queue import Queue
@@ -14,34 +14,10 @@ import open3d.core as o3c
 import coord_transform as ct
 from o3d_recon.vio.vio import VIO
 
-
-def ros_config():
-    import rospy
-    from std_msgs.msg import Header
-    from sensor_msgs.msg import PointCloud2, PointField
-    import sensor_msgs.point_cloud2 as pc2
-
-    # The data structure of each point in ros PointCloud2: 16 bits = x + y + z + rgb
-    FIELDS_XYZ = [
-        PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-        PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-        PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
-    ]
-    FIELDS_XYZRGB = FIELDS_XYZ + \
-                    [PointField(name='rgb', offset=12, datatype=PointField.FLOAT32, count=1)]
-
-    # Bit operations
-    BIT_MOVE_16 = 2 ** 16
-    BIT_MOVE_8 = 2 ** 8
-    convert_rgbUint32_to_tuple = lambda rgb_uint32: (
-        (rgb_uint32 & 0x00ff0000) >> 16, (rgb_uint32 & 0x0000ff00) >> 8, (rgb_uint32 & 0x000000ff)
-    )
-    convert_rgbFloat_to_tuple = lambda rgb_float: convert_rgbUint32_to_tuple(
-        int(cast(pointer(c_float(rgb_float)), POINTER(c_uint32)).contents.value)
-    )
-
-    return   FIELDS_XYZ, FIELDS_XYZRGB, BIT_MOVE_16, BIT_MOVE_8
-
+import rospy
+from std_msgs.msg import Header
+from sensor_msgs.msg import PointCloud2, PointField
+import sensor_msgs.point_cloud2 as pc2
 
 class RealtimeRecon:
     def __init__(self,
@@ -57,10 +33,11 @@ class RealtimeRecon:
 
         self.send_ros = send_ros
         if send_ros:
-            self. FIELDS_XYZ, self.FIELDS_XYZRGB, self.BIT_MOVE_16, self.BIT_MOVE_8= ros_config()
-
+            self.ros_frame_id = 'odom'
             self.ros_publisher = None
             self.set_ros()
+
+            rospy.on_shutdown(self.shutdown_ros)
 
         # Reconstruction config
         self.depth_scale = 1000.0
@@ -108,19 +85,22 @@ class RealtimeRecon:
 
         self.set_model()
 
-        self.cnt = 0
-
-    def __del__(self):
-        print('asdf')
-
-    def __exit__(self):
-        print('asdfasdf')
+    def shutdown_ros(self):
         nodes = os.popen("rosnode list").readlines()
         for i in range(len(nodes)):
             nodes[i] = nodes[i].replace("\n", "")
 
         for node in nodes:
             os.system("rosnode kill " + node)
+
+        time.sleep(1)
+        # os.system("killall -9 roscore")
+        os.system(f"kill -9 {os.getpid()}")
+
+        # for p in psutil.process_iter(attrs=['pid', 'name']):
+        #     if 'python' in p.info['name']:
+        #         print(p)
+        #         os.system(f"kill -9 {p.info['pid']}")
 
     def __call__(self, color, depth, imu=None, ext_img=None):
         self.timestamp = time.time()
@@ -149,18 +129,19 @@ class RealtimeRecon:
         self.recon()
         self.get_pcd()
 
-        self.cnt += 1
-        if self.send_ros and self.pcd is not None:# and not rospy.is_shutdown():
-            # if self.cnt > 20:
-            #     self.ros_pcd = self.cvt_o3d_pcd_to_ros_pcd2(self.pcd)
-            #     # print(self.ros_pcd)
-            #     self.ros_publisher(self.ros_pcd)
-            #     print('send')
+        if self.send_ros and self.pcd is not None and not rospy.is_shutdown():
             try:
                 ros_pcd = self.cvt_o3d_pcd_to_ros_pcd2()
                 self.ros_publisher.publish(ros_pcd)
-            except Exception as e:
-                print(e)
+
+            except rospy.ROSInterruptException as e:
+                pass
+                # nodes = os.popen("rosnode list").readlines()
+                # for i in range(len(nodes)):
+                #     nodes[i] = nodes[i].replace("\n", "")
+                #
+                # for node in nodes:
+                #     os.system("rosnode kill " + node)
 
         return self.pcd, self.curr_points, self.curr_colors, self.prev_points, self.prev_colors
 
@@ -198,12 +179,6 @@ class RealtimeRecon:
                                                         self.device)
         self.raycast_frame.set_data_from_image('color', self.color_ref)
         self.raycast_frame.set_data_from_image('depth', self.depth_ref)
-
-    def set_ros(self):
-        rospy.init_node('keti_3dmap', anonymous=True)
-
-        topic_name = "keti/points"
-        self.ros_publisher = rospy.Publisher(topic_name, PointCloud2, queue_size=10)
 
     def set_model(self):
         self.model = o3d.t.pipelines.slam.Model(
@@ -266,10 +241,35 @@ class RealtimeRecon:
         self.prev_num_pcd = points.shape[0]
         self.curr_num_pcd = self.curr_colors.shape[0]
 
-    def cvt_o3d_pcd_to_ros_pcd2(self, frame_id="odom"):
+    def set_ros(self):
+        # The data structure of each point in ros PointCloud2: 16 bits = x + y + z + rgb
+        self.FIELDS_XYZ = [
+            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
+        ]
+        self.FIELDS_XYZRGB = self.FIELDS_XYZ + \
+                        [PointField(name='rgb', offset=12, datatype=PointField.FLOAT32, count=1)]
+
+        # Bit operations
+        self.BIT_MOVE_16 = 2 ** 16
+        self.BIT_MOVE_8 = 2 ** 8
+        convert_rgbUint32_to_tuple = lambda rgb_uint32: (
+            (rgb_uint32 & 0x00ff0000) >> 16, (rgb_uint32 & 0x0000ff00) >> 8, (rgb_uint32 & 0x000000ff)
+        )
+        convert_rgbFloat_to_tuple = lambda rgb_float: convert_rgbUint32_to_tuple(
+            int(cast(pointer(c_float(rgb_float)), POINTER(c_uint32)).contents.value)
+        )
+
+        rospy.init_node('keti_3dmap', anonymous=True)
+
+        topic_name = "keti/3d_map/pointcloud"
+        self.ros_publisher = rospy.Publisher(topic_name, PointCloud2, queue_size=10)
+
+    def cvt_o3d_pcd_to_ros_pcd2(self):
         header = Header()
         header.stamp = rospy.Time.now()
-        header.frame_id = frame_id
+        header.frame_id = self.ros_frame_id
 
         # fields = self.FIELDS_XYZ
         fields = self.FIELDS_XYZRGB
@@ -279,12 +279,12 @@ class RealtimeRecon:
         colors = np.floor(colors * 255)  # nx3 matrix
 
         colors = colors.astype(np.uint32)
-        colors = colors[:, 2] * BIT_MOVE_16 + colors[:, 1] * BIT_MOVE_8 + colors[:, 1]
+        colors = colors[:, 2] * self.BIT_MOVE_16 + colors[:, 1] * self.BIT_MOVE_8 + colors[:, 1]
         colors = colors.view(np.float32)
         cloud_data = [tuple((*p, c)) for p, c in zip(points, colors)]
 
         # create ros_cloud
-        return pc2.create_cloud(Header(frame_id='odom', stamp=rospy.Time.now()), fields, cloud_data)
+        return pc2.create_cloud(header, fields, cloud_data)
 
     @staticmethod
     def numpy2Image(data):
