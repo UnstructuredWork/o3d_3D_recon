@@ -129,6 +129,11 @@ class RealtimeRecon:
         self.depth_raw = depth
         self.imu = imu
 
+        """
+        self.panotic = function(color)  -> self.panotic은 color와 shape 같은 RGB 이미지
+        
+        """
+
         self.color_ref = self.numpy2Image(color).to(self.device)
         self.depth_ref = self.numpy2Image(depth).to(self.device)
 
