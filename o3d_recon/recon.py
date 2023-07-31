@@ -19,6 +19,8 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import PointCloud2, PointField
 import sensor_msgs.point_cloud2 as pc2
 
+from panoptic.panoptic import Panoptic
+
 class RealtimeRecon:
     def __init__(self,
                  intrinsic: np.ndarray,
@@ -85,6 +87,11 @@ class RealtimeRecon:
 
         self.set_model()
 
+        # PANOPTIC
+        self.pan = Panoptic('./panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py',
+                            'https://download.openmmlab.com/mmdetection/v3.0/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic/mask2former_r50_8xb2-lsj-50e_coco-panoptic_20230118_125535-54df384a.pth')
+        self.panoptic = None
+
     def shutdown_ros(self):
         nodes = os.popen("rosnode list").readlines()
         for i in range(len(nodes)):
@@ -109,10 +116,7 @@ class RealtimeRecon:
         self.depth_raw = depth
         self.imu = imu
 
-        """
-        self.panotic = function(color)  -> self.panotic은 color와 shape 같은 RGB 이미지
-        
-        """
+        self.panoptic = self.pan.get_panoptic(color)
 
         self.color_ref = self.numpy2Image(color).to(self.device)
         self.depth_ref = self.numpy2Image(depth).to(self.device)
