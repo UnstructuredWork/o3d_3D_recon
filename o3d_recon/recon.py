@@ -14,14 +14,12 @@ import open3d.core as o3c
 import coord_transform as ct
 from o3d_recon.vio.vio import VIO
 
-try:
-    import rospy
-    from std_msgs.msg import Header
-    from sensor_msgs.msg import PointCloud2, PointField
-    import sensor_msgs.point_cloud2 as pc2
-except:
-    pass
+import rospy
+from std_msgs.msg import Header
+from sensor_msgs.msg import PointCloud2, PointField
+import sensor_msgs.point_cloud2 as pc2
 
+from panoptic.panoptic import Panoptic
 
 def kill_ros_node():
     pass
@@ -31,11 +29,18 @@ def kill_ros_node():
     #
     # for node in nodes:
     #     os.system("rosnode kill " + node)
+# import rospy
+# from std_msgs.msg import Header
+# from sensor_msgs.msg import PointCloud2, PointField
+# import sensor_msgs.point_cloud2 as pc2
+
+
 
 class RealtimeRecon:
     def __init__(self,
                  intrinsic: np.ndarray,
                  voxel_size: float = 0.006,
+                 panoptic: bool = True,
                  device: str = 'CUDA:0',
                  send_ros=False):
 
@@ -80,6 +85,7 @@ class RealtimeRecon:
         self.depth_raw = None
         self.color_ref = None
         self.depth_ref = None
+        self.panop_ref = None
 
         self.input_frame   = None
         self.raycast_frame = None
@@ -100,6 +106,16 @@ class RealtimeRecon:
 
         self.set_model()
 
+        self.pan = None
+
+        if panoptic:
+            # PANOPTIC
+            self.pan = Panoptic('./panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py',
+                                'https://download.openmmlab.com/mmdetection/v3.0/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic/mask2former_r50_8xb2-lsj-50e_coco-panoptic_20230118_125535-54df384a.pth',
+                                classes=[i for i in range(80, 133)],
+                                device='cuda:0')
+
+
     def shutdown_ros(self):
         kill_ros_node()
 
@@ -119,12 +135,17 @@ class RealtimeRecon:
         self.depth_raw = depth
         self.imu = imu
 
-        """
-        self.panotic = function(color)  -> self.panotic은 color와 shape 같은 RGB 이미지
-        
-        """
+        panoptic_img = self.pan.get_panoptic(color)
+        self.panop_ref = self.numpy2Image(panoptic_img).to(self.device)
 
-        self.color_ref = self.numpy2Image(color).to(self.device)
+        # if self.pan:
+        #     try:
+        #         panoptic_img = self.pan.get_panoptic(color)
+        #         self.panop_ref = self.numpy2Image(panoptic_img).to(self.device)
+        #     except Exception as e:
+        #         print(e)
+
+        self.color_ref = self.numpy2Image(panoptic_img).to(self.device)
         self.depth_ref = self.numpy2Image(depth).to(self.device)
 
         self.set_frame()
