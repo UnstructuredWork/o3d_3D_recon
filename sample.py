@@ -15,7 +15,7 @@ color, depth = sensor.get_data()
 
 time.sleep(1)
 
-slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic, send_ros=True)
+slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic, send_ros=False)
 
 if slam.is_started:
     a = 0

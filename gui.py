@@ -305,15 +305,15 @@ class ReconstructionWindow:
         self.widget3d.scene.add_geometry("frustum", frustum, mat)
 
     def run_recon(self):
-        # sensor = Kinect()
-        # sensor.start(1536)
-        # intrinsic = sensor.intrinsic_color
+        sensor = Kinect()
+        sensor.start(1536)
+        intrinsic = sensor.intrinsic_color
 
-        sensor = RSSensor()
-        sensor.start()
-        intrinsic = np.array([[sensor.info.fx, 0, sensor.info.cx],
-                              [0, sensor.info.fy, sensor.info.cy],
-                              [0, 0, 1]])
+        # sensor = RSSensor()
+        # sensor.start()
+        # intrinsic = np.array([[sensor.info.fx, 0, sensor.info.cx],
+        #                       [0, sensor.info.fy, sensor.info.cy],
+        #                       [0, 0, 1]])
 
         color, depth = sensor.get_data()
 
@@ -328,14 +328,16 @@ class ReconstructionWindow:
                 t11 = time.time()
                 color, depth = sensor.get_data()
                 # imu = sensor.get_imu()
-                t21 = time.time()
-                print((t21 - t11) * 1000)
 
                 t1 = time.time() * 1000
                 pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth)
 
+                t21 = time.time()
+                # print((t21 - t11) * 1000)
+
                 # print(curr_colors.shape)
-                # print(curr_points.shape)
+                # print(c
+                # urr_points.shape)
                 # print()
                 # print(curr_colors.shape, curr_colors.shape)
                 t2 = time.time() * 1000
