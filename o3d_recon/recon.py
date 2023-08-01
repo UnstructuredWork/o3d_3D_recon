@@ -95,7 +95,8 @@ class RealtimeRecon:
             # PANOPTIC
             self.pan = Panoptic('./panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py',
                                 'https://download.openmmlab.com/mmdetection/v3.0/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic/mask2former_r50_8xb2-lsj-50e_coco-panoptic_20230118_125535-54df384a.pth',
-                                classes=[i for i in range(80, 133)])
+                                classes=[i for i in range(80, 133)],
+                                device='cuda:0')
 
 
     def shutdown_ros(self):

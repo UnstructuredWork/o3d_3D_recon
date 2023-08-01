@@ -6,7 +6,7 @@ import torch
 import time
 import numpy as np
 
-from mmdet.registry import VISUALIZERS
+# from mmdet.registry import VISUALIZERS
 from mmdet.apis import inference_detector, init_detector
 
 PANOPTIC_PALETTE = [(220, 20, 60), (119, 11, 32), (0, 0, 142), (0, 0, 230), (106, 0, 228),
@@ -59,8 +59,8 @@ class Panoptic:
 
         self.model = init_detector(self.model_cfg, self.model_chk, device=self.device)
 
-        self.vis = VISUALIZERS.build(self.model.cfg.visualizer)
-        self.vis.dataset_meta = self.model.dataset_meta
+        # self.vis = VISUALIZERS.build(self.model.cfg.visualizer)
+        # self.vis.dataset_meta = self.model.dataset_meta
 
         self.score_thr = threshold
         self.classes = classes
@@ -75,7 +75,7 @@ class Panoptic:
 
     def get_panoptic(self, img):
         t1 = time.time()
-
+        img = cv2.resize(img, dsize=[1024, 768])
         result = inference_detector(self.model, img)
 
         result_sem_seg = result.pred_panoptic_seg.sem_seg.cpu()
@@ -89,17 +89,15 @@ class Panoptic:
         # print(labels)
         t2 = time.time()
         #
-        mask = np.ones_like(img, dtype=np.uint8)# * 255
+        mask = np.ones_like(img, dtype=np.uint8) * 255
 
         for cls_id in np.unique(result_sem_seg):
             if cls_id >= NUM_CLASSES:
                 continue
             mask[result_sem_seg == cls_id] = PANOPTIC_PALETTE[cls_id]
 
-
-
-        # for id, cls in enumerate(labels):
-        #     mask[masks[id, :, :]] = PANOPTIC_PALETTE[cls]
+        for id, cls in enumerate(labels):
+            mask[masks[id, :, :]] = PANOPTIC_PALETTE[cls]
 
         t3 = time.time()
 
@@ -108,8 +106,8 @@ class Panoptic:
 
 
         # print(mask)
-        # print("t1: ", (t2 - t1) * 1000)
-        # print("t2: ", (t3 - t1) * 1000)
-
+        print("t1: ", (t2 - t1) * 1000)
+        print("t2: ", (t3 - t1) * 1000)
+        mask = cv2.resize(mask, dsize=[2048, 1536])
         return mask
 
