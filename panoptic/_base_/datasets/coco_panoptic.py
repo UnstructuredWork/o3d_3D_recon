@@ -20,13 +20,13 @@ backend_args = None
 train_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
     dict(type='LoadPanopticAnnotations', backend_args=backend_args),
-    dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+    dict(type='Resize', scale=(666, 400), keep_ratio=True),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PackDetInputs')
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
-    dict(type='Resize', scale=(1333, 800), keep_ratio=True),
+    dict(type='Resize', scale=(666, 400), keep_ratio=True),
     dict(type='LoadPanopticAnnotations', backend_args=backend_args),
     dict(
         type='PackDetInputs',

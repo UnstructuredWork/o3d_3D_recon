@@ -75,7 +75,7 @@ class Panoptic:
 
     def get_panoptic(self, img):
         t1 = time.time()
-        img = cv2.resize(img, dsize=[1024, 768])
+        img = cv2.resize(img, dsize=[666, 400])
         result = inference_detector(self.model, img)
 
         result_sem_seg = result.pred_panoptic_seg.sem_seg.cpu()

@@ -1,7 +1,7 @@
 _base_ = [
     '../_base_/datasets/coco_panoptic.py', '../_base_/default_runtime.py'
 ]
-image_size = (512, 512)
+image_size = (666, 400)
 batch_augments = [
     dict(
         type='BatchFixedSizePad',
