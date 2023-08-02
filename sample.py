@@ -28,7 +28,7 @@ if slam.is_started:
         color, depth = sensor.get_data()
 
         t1 = time.time()
-        pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth)
+        result = slam(color, depth)
         t2 = time.time()
 
         print((t2 - t1) * 1000)

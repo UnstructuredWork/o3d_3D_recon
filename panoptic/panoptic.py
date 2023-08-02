@@ -1,12 +1,9 @@
 import os
 
 import cv2
-import mmcv
 import torch
-import time
 import numpy as np
 
-# from mmdet.registry import VISUALIZERS
 from mmdet.apis import inference_detector, init_detector
 
 PANOPTIC_PALETTE = [(220, 20, 60), (119, 11, 32), (0, 0, 142), (0, 0, 230), (106, 0, 228),
@@ -49,18 +46,15 @@ class Panoptic:
                  config: str,
                  checkpoint: str,
                  classes: list = None,
-                 device: str = 'cuda:0',
+                 device: str = '0',
                  threshold: float = 0.8):
 
-        self.device = torch.device(device)
+        self.device = torch.device('cuda:'+device)
 
         self.model_cfg = config
         self.model_chk = self.load_model(checkpoint, './panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.pth')
 
         self.model = init_detector(self.model_cfg, self.model_chk, device=self.device)
-
-        # self.vis = VISUALIZERS.build(self.model.cfg.visualizer)
-        # self.vis.dataset_meta = self.model.dataset_meta
 
         self.score_thr = threshold
         self.classes = classes
@@ -74,21 +68,15 @@ class Panoptic:
         return file_name
 
     def get_panoptic(self, img):
-        t1 = time.time()
-        img = cv2.resize(img, dsize=[666, 400])
+        img = cv2.resize(img, dsize=[333, 200])
         result = inference_detector(self.model, img)
 
         result_sem_seg = result.pred_panoptic_seg.sem_seg.cpu()
         result_sem_seg = np.squeeze(result_sem_seg)
 
-        # print(len(np.where(result_sem_seg > 133)))
-        # print(result_sem_seg)
-        # print(result_sem_seg.shape)
         labels = result.pred_instances.labels.cpu()
         masks  = result.pred_instances.masks.cpu()
-        # print(labels)
-        t2 = time.time()
-        #
+
         mask = np.ones_like(img, dtype=np.uint8) * 255
 
         for cls_id in np.unique(result_sem_seg):
@@ -99,15 +87,5 @@ class Panoptic:
         for id, cls in enumerate(labels):
             mask[masks[id, :, :]] = PANOPTIC_PALETTE[cls]
 
-        t3 = time.time()
-
-        # cv2.imshow('', mask)
-        # cv2.waitKey(1)
-
-
-        # print(mask)
-        print("t1: ", (t2 - t1) * 1000)
-        print("t2: ", (t3 - t1) * 1000)
-        mask = cv2.resize(mask, dsize=[2048, 1536])
-        return mask
+        return cv2.resize(mask, dsize=[2048, 1536])
 

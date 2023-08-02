@@ -7,7 +7,7 @@ import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 
 from kinect import Kinect
-from ketisdk.sensor.realsense_sensor import RSSensor
+# from ketisdk.sensor.realsense_sensor import RSSensor
 from o3d_recon import RealtimeRecon
 
 
@@ -294,6 +294,7 @@ class ReconstructionWindow:
 
         # if self.is_scene_updated:
         if pcd is not None and pcd.point.positions.shape[0] > 0:
+        # if pcd is not None and np.asarray(pcd.points).shape[0] > 0:
             self.widget3d.scene.scene.update_geometry(
                 'points', pcd, rendering.Scene.UPDATE_POINTS_FLAG |
                                rendering.Scene.UPDATE_COLORS_FLAG)
@@ -319,30 +320,38 @@ class ReconstructionWindow:
 
         time.sleep(1)
 
-        slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic, send_ros=False)
+        slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic,
+                             panoptic=False, send_ros=False)
+
+        _pcd = o3d.geometry.PointCloud()
 
         if slam.is_started:
 
             while True:
                 start = time.time()
-                t11 = time.time()
+
                 color, depth = sensor.get_data()
                 # imu = sensor.get_imu()
 
-                t1 = time.time() * 1000
-                pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth)
+                result = slam(color, depth)
 
-                t21 = time.time()
-                # print((t21 - t11) * 1000)
+                pcd_rgb = result.rgb.pcd
+                # pcd_pan = result.panoptic.pcd
 
-                # print(curr_colors.shape)
-                # print(c
-                # urr_points.shape)
-                # print()
-                # print(curr_colors.shape, curr_colors.shape)
-                t2 = time.time() * 1000
-                t = t2 - t1
-                # print(t)
+                _pcd.points.extend(result.rgb.curr_points)
+                _pcd.colors.extend(result.rgb.curr_colors)
+
+                o3d.visualization.draw_geometries([pcd],
+                                                  zoom=0.3412,
+                                                  front=[0.4257, -0.2125, -0.8795],
+                                                  lookat=[2.6172, 2.0475, 1.532],
+                                                  up=[-0.0694, -0.9768, 0.2024])
+
+                print(np.asarray(_pcd.points))
+
+                # pcd = o3d.t.geometry.PointCloud.from_legacy(_pcd)
+
+                # pcd = pcd_pan
 
                 ################
                 gui.Application.instance.post_to_main_thread(
@@ -371,22 +380,20 @@ class ReconstructionWindow:
                 # info += 'Active voxel blocks: {}/{}\n'.format(
                 #     self.model.voxel_grid.hashmap().size(),
                 #     self.model.voxel_grid.hashmap().capacity())
-                info += 'Surface points: {}/{}\n'.format(
-                    0 if pcd is None else pcd.point.positions.shape[0],
-                    self.est_point_count_slider.int_value)
+                # info += 'Surface points: {}/{}\n'.format(
+                #     # 0 if pcd is None else pcd.point.positions.shape[0],
+                #     self.est_point_count_slider.int_value)
 
                 self.output_info.text = info
 
                 gui.Application.instance.post_to_main_thread(
                     self.window, lambda: self.update_render(
-                        slam.input_frame.get_data_as_image('depth'),
-                        slam.input_frame.get_data_as_image('color'),
-                        slam.raycast_frame.get_data_as_image('depth'),
-                        slam.raycast_frame.get_data_as_image('color'), pcd, frustum))
+                        slam.input_frame_rgb.get_data_as_image('depth'),
+                        slam.input_frame_rgb.get_data_as_image('color'),
+                        slam.raycast_frame_rgb.get_data_as_image('depth'),
+                        slam.raycast_frame_rgb.get_data_as_image('color'), pcd, frustum))
 
                 self.idx += 1
-
-                # time.sleep(0.5)
 
 
 if __name__ == '__main__':
