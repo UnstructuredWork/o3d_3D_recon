@@ -1,4 +1,5 @@
 import time
+import socket
 import threading
 import numpy as np
 import open3d as o3d
@@ -6,8 +7,7 @@ import open3d.core as o3c
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 
-from kinect import Kinect
-from ketisdk.sensor.realsense_sensor import RSSensor
+from server import RgbdServer
 from o3d_recon import RealtimeRecon
 
 
@@ -186,6 +186,8 @@ class ReconstructionWindow:
         self.idx = 0
         self.poses = []
 
+        self.intrinsic = None
+
         # Start running
         threading.Thread(name='UpdateMain', target=self.run_recon).start()
 
@@ -305,88 +307,73 @@ class ReconstructionWindow:
         self.widget3d.scene.add_geometry("frustum", frustum, mat)
 
     def run_recon(self):
-        sensor = Kinect()
-        sensor.start(1536)
-        intrinsic = sensor.intrinsic_color
-
-        # sensor = RSSensor()
-        # sensor.start()
-        # intrinsic = np.array([[sensor.info.fx, 0, sensor.info.cx],
-        #                       [0, sensor.info.fy, sensor.info.cy],
-        #                       [0, 0, 1]])
-
-        color, depth = sensor.get_data()
+        sensor = RgbdServer(['10.252.117.101', 5003], "RGBD")
+        while True:
+            try:
+                recv_data = sensor.recv_udp()
+                if recv_data is not None:
+                    self.intrinsic = recv_data["intrinsic"]
+                    break
+            except socket.timeout:
+                pass
 
         time.sleep(1)
 
-        slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic, send_ros=False)
+        slam = RealtimeRecon(voxel_size=0.006, intrinsic=self.intrinsic, send_ros=False)
 
         if slam.is_started:
 
             while True:
                 start = time.time()
-                t11 = time.time()
-                color, depth = sensor.get_data()
-                # imu = sensor.get_imu()
 
-                t1 = time.time() * 1000
-                pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth)
+                recv_data = sensor.recv_udp()
+                if recv_data is not None:
+                    color, depth = recv_data["rgb"], recv_data["depth"]
+                    pcd, curr_points, curr_colors, prev_points, prev_colors = slam(color, depth)
 
-                t21 = time.time()
-                # print((t21 - t11) * 1000)
+                    ################
+                    gui.Application.instance.post_to_main_thread(
+                        self.window, lambda: self.init_render(slam.depth_ref, slam.color_ref))
 
-                # print(curr_colors.shape)
-                # print(c
-                # urr_points.shape)
-                # print()
-                # print(curr_colors.shape, curr_colors.shape)
-                t2 = time.time() * 1000
-                t = t2 - t1
-                # print(t)
+                    frustum = o3d.geometry.LineSet.create_camera_visualization(
+                        slam.color_ref.columns, slam.color_ref.rows, slam.intrinsic.numpy(),
+                        np.linalg.inv(slam.T_frame_to_model.cpu().numpy()), 0.2)
+                    frustum.paint_uniform_color([0.961, 0.475, 0.000])
 
-                ################
-                gui.Application.instance.post_to_main_thread(
-                    self.window, lambda: self.init_render(slam.depth_ref, slam.color_ref))
+                    # Output FPS
+                    if (self.idx % 30 == 0):
+                        end = time.time()
+                        elapsed = end - start
+                        start = time.time()
+                        self.output_fps.text = 'FPS: {:.3f}'.format(30 /
+                                                                    elapsed)
 
-                frustum = o3d.geometry.LineSet.create_camera_visualization(
-                    slam.color_ref.columns, slam.color_ref.rows, slam.intrinsic.numpy(),
-                    np.linalg.inv(slam.T_frame_to_model.cpu().numpy()), 0.2)
-                frustum.paint_uniform_color([0.961, 0.475, 0.000])
+                    # Output info
+                    info = 'Frame {}\n\n'.format(self.idx)
+                    info += 'Transformation:\n{}\n'.format(
+                        np.array2string(slam.T_frame_to_model.numpy(),
+                                        precision=3,
+                                        max_line_width=40,
+                                        suppress_small=True))
+                    # info += 'Active voxel blocks: {}/{}\n'.format(
+                    #     self.model.voxel_grid.hashmap().size(),
+                    #     self.model.voxel_grid.hashmap().capacity())
+                    info += 'Surface points: {}/{}\n'.format(
+                        0 if pcd is None else pcd.point.positions.shape[0],
+                        self.est_point_count_slider.int_value)
 
-                # Output FPS
-                if (self.idx % 30 == 0):
-                    end = time.time()
-                    elapsed = end - start
-                    start = time.time()
-                    self.output_fps.text = 'FPS: {:.3f}'.format(30 /
-                                                                elapsed)
+                    self.output_info.text = info
 
-                # Output info
-                info = 'Frame {}\n\n'.format(self.idx)
-                info += 'Transformation:\n{}\n'.format(
-                    np.array2string(slam.T_frame_to_model.numpy(),
-                                    precision=3,
-                                    max_line_width=40,
-                                    suppress_small=True))
-                # info += 'Active voxel blocks: {}/{}\n'.format(
-                #     self.model.voxel_grid.hashmap().size(),
-                #     self.model.voxel_grid.hashmap().capacity())
-                info += 'Surface points: {}/{}\n'.format(
-                    0 if pcd is None else pcd.point.positions.shape[0],
-                    self.est_point_count_slider.int_value)
+                    gui.Application.instance.post_to_main_thread(
+                        self.window, lambda: self.update_render(
+                            slam.input_frame.get_data_as_image('depth'),
+                            slam.input_frame.get_data_as_image('color'),
+                            slam.raycast_frame.get_data_as_image('depth'),
+                            slam.raycast_frame.get_data_as_image('color'), pcd, frustum))
 
-                self.output_info.text = info
+                    self.idx += 1
 
-                gui.Application.instance.post_to_main_thread(
-                    self.window, lambda: self.update_render(
-                        slam.input_frame.get_data_as_image('depth'),
-                        slam.input_frame.get_data_as_image('color'),
-                        slam.raycast_frame.get_data_as_image('depth'),
-                        slam.raycast_frame.get_data_as_image('color'), pcd, frustum))
-
-                self.idx += 1
-
-                # time.sleep(0.5)
+                    # time.sleep(0.5)
 
 
 if __name__ == '__main__':

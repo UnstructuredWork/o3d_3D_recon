@@ -42,8 +42,8 @@ from mmdet.apis import inference_detector, init_detector
 #          (96, 36, 108), (96, 96, 96), (64, 170, 64), (152, 251, 152),
 #          (208, 229, 228), (206, 186, 171), (152, 161, 64), (116, 112, 0),
 #          (0, 114, 143), (102, 102, 156), (250, 141, 255)]
-PANOPTIC_PALETTE = [(0, 0, 0), (127, 141, 255), (119, 11, 32), (0, 50, 142), (220, 20, 60), (163, 255, 0),
-                    (67, 26, 255), (0, 0, 230), (104, 84, 109), (45, 89, 255), (210, 170, 100), (209, 99, 106)]
+PANOPTIC_PALETTE = [(0, 0, 0), (255, 150, 150), (0, 0, 255), (255, 255, 0), (255, 0, 0), (255, 0, 255),
+                    (0, 100, 255), (200, 255, 0), (255, 150, 0), (255, 255, 255), (100, 255, 100), (200, 150, 200)]
 NUM_CLASSES = len(PANOPTIC_PALETTE)
 
 class Panoptic:
@@ -77,22 +77,18 @@ class Panoptic:
 
     def get_panoptic(self, img):
         t1 = time.time()
+
+        h, w, _ = img.shape
         img = cv2.resize(img, dsize=[666, 400])
         result = inference_detector(self.model, img)
-
         result_sem_seg = result.pred_panoptic_seg.sem_seg.cpu()
         result_sem_seg = np.squeeze(result_sem_seg)
-
-        # print(len(np.where(result_sem_seg > 133)))
-        # print(result_sem_seg)
-        # print(result_sem_seg.shape)
         labels = result.pred_instances.labels.cpu()
         masks  = result.pred_instances.masks.cpu()
-        # print(labels)
-        t2 = time.time()
-        #
-        mask = np.ones_like(img, dtype=np.uint8) * 255
 
+        t2 = time.time()
+
+        mask = np.ones_like(img, dtype=np.uint8) * 255
         for cls_id in np.unique(result_sem_seg):
             if cls_id >= NUM_CLASSES:
                 continue
@@ -103,13 +99,9 @@ class Panoptic:
 
         t3 = time.time()
 
-        # cv2.imshow('', mask)
-        # cv2.waitKey(1)
-
-
-        # print(mask)
         print("t1: ", (t2 - t1) * 1000)
         print("t2: ", (t3 - t1) * 1000)
-        mask = cv2.resize(mask, dsize=[2048, 1536])
+
+        mask = cv2.resize(mask, dsize=[w, h])
         return mask
 
