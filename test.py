@@ -13,7 +13,7 @@ class ImageConverter:
         self.depth = None
 
         self.msg = rospy.wait_for_message('/zed/zed_node/rgb/camera_info', CameraInfo)
-        self.intrinsic = self.msg.K
+        self.intrinsic = np.reshape(np.array(self.msg.K), (3, 3))
 
         self.rgb_sub = message_filters.Subscriber('/zed/zed_node/rgb/image_rect_color', Image)
         self.depth_sub = message_filters.Subscriber('/zed/zed_node/depth/depth_registered', Image)
@@ -25,9 +25,9 @@ class ImageConverter:
 
     def callback(self, rgb, depth):
         cv_rgb = np.frombuffer(rgb.data, dtype=np.uint8).reshape(rgb.height, rgb.width, -1)
-        cv_depth = np.frombuffer(depth.data, dtype=np.float32).reshape(depth.height, depth.width, -1)
+        cv_depth = np.frombuffer(depth.data, dtype=np.float32).reshape(depth.height, depth.width)
 
-        self.rgb = cv_rgb
+        self.rgb = cv2.cvtColor(cv_rgb, cv2.COLOR_BGRA2BGR)
         self.depth = cv_depth
 
         # self.show(cv_rgb, cv_depth)
