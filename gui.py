@@ -6,9 +6,9 @@ import open3d.core as o3c
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 
-from kinect import Kinect
-# from ketisdk.sensor.realsense_sensor import RSSensor
-from o3d_recon import RealtimeRecon
+# from kinect import Kinect
+from ketisdk.sensor.realsense_sensor import RSSensor
+from o3d_recon.recon import RealtimeRecon
 
 
 def set_enabled(widget, enable):
@@ -306,22 +306,22 @@ class ReconstructionWindow:
         self.widget3d.scene.add_geometry("frustum", frustum, mat)
 
     def run_recon(self):
-        sensor = Kinect()
-        sensor.start(1536)
-        intrinsic = sensor.intrinsic_color
+        # sensor = Kinect()
+        # sensor.start(1536)
+        # intrinsic = sensor.intrinsic_color
 
-        # sensor = RSSensor()
-        # sensor.start()
-        # intrinsic = np.array([[sensor.info.fx, 0, sensor.info.cx],
-        #                       [0, sensor.info.fy, sensor.info.cy],
-        #                       [0, 0, 1]])
+        sensor = RSSensor()
+        sensor.start()
+        intrinsic = np.array([[sensor.info.fx, 0, sensor.info.cx],
+                              [0, sensor.info.fy, sensor.info.cy],
+                              [0, 0, 1]])
 
         color, depth = sensor.get_data()
 
         time.sleep(1)
 
         slam = RealtimeRecon(voxel_size=0.006, intrinsic=intrinsic,
-                             panoptic=False, send_ros=False)
+                             panoptic=True, send_ros=False)
 
         _pcd = o3d.geometry.PointCloud()
 
@@ -337,17 +337,14 @@ class ReconstructionWindow:
 
                 pcd_rgb = result.rgb.pcd
                 # pcd_pan = result.panoptic.pcd
+                # pcd  = pcd_rgb
+                pcd = result.panoptic.pcd
+                # pcd_pan = result.panoptic.pcd
 
-                _pcd.points.extend(result.rgb.curr_points)
-                _pcd.colors.extend(result.rgb.curr_colors)
-
-                o3d.visualization.draw_geometries([pcd],
-                                                  zoom=0.3412,
-                                                  front=[0.4257, -0.2125, -0.8795],
-                                                  lookat=[2.6172, 2.0475, 1.532],
-                                                  up=[-0.0694, -0.9768, 0.2024])
-
-                print(np.asarray(_pcd.points))
+                # _pcd.points.extend(result.rgb.curr_points)
+                # _pcd.colors.extend(result.rgb.curr_colors)
+                #
+                # print(np.asarray(_pcd.points))
 
                 # pcd = o3d.t.geometry.PointCloud.from_legacy(_pcd)
 

@@ -12,7 +12,7 @@ import numpy as np
 import open3d as o3d
 import open3d.core as o3c
 import coord_transform as ct
-from o3d_recon.vio.vio import VIO
+# from o3d_recon.vio.vio import VIO
 from panoptic.panoptic import Panoptic
 
 # import rospy
@@ -75,12 +75,12 @@ class RealtimeRecon:
         # self.poses = []
 
         self.T_frame_to_model = o3c.Tensor(np.identity(4))
-        self.T_frame_to_model_vio = o3c.Tensor(np.identity(4))
+        # self.T_frame_to_model_vio = o3c.Tensor(np.identity(4))
 
-        self.vio_img_queue = Queue()
-        self.vio_imu_queue = Queue()
-
-        self.vio = VIO(self.vio_img_queue, self.vio_imu_queue)
+        # self.vio_img_queue = Queue()
+        # self.vio_imu_queue = Queue()
+        #
+        # self.vio = VIO(self.vio_img_queue, self.vio_imu_queue)
 
         self.timestamp = time.time()
         self.imu = None
@@ -289,8 +289,8 @@ class RealtimeRecon:
         # prev_points = points[:self.prev_num_pcd, :]
         # prev_colors = colors[:self.prev_num_pcd, :]
 
-        self.curr_points = points[self.prev_num_pcd:, :].numpy()
-        self.curr_colors = colors[self.prev_num_pcd:, :].numpy()
+        self.curr_points = points[self.prev_num_pcd:, :].numpy()#.astype(np.float64)
+        self.curr_colors = colors[self.prev_num_pcd:, :].numpy()#.astype(np.float64)
 
         self.prev_num_pcd = points.shape[0]
         self.curr_num_pcd = self.curr_colors.shape[0]

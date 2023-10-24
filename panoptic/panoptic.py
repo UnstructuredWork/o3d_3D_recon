@@ -1,4 +1,5 @@
 import os
+import time
 
 import cv2
 import torch
@@ -54,7 +55,7 @@ class Panoptic:
         self.model_cfg = config
         self.model_chk = self.load_model(checkpoint, './panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.pth')
 
-        self.model = init_detector(self.model_cfg, self.model_chk, device=self.device)
+        self.model = init_detector(self.model_cfg, self.model_chk, device='cuda:'+device)
 
         self.score_thr = threshold
         self.classes = classes
@@ -68,6 +69,9 @@ class Panoptic:
         return file_name
 
     def get_panoptic(self, img):
+        t1 = time.time()
+        raw_img_shape = img.shape[:-1][::-1]
+
         img = cv2.resize(img, dsize=[333, 200])
         result = inference_detector(self.model, img)
 
@@ -76,7 +80,7 @@ class Panoptic:
 
         labels = result.pred_instances.labels.cpu()
         masks  = result.pred_instances.masks.cpu()
-
+        t2 = time.time()
         mask = np.ones_like(img, dtype=np.uint8) * 255
 
         for cls_id in np.unique(result_sem_seg):
@@ -86,6 +90,10 @@ class Panoptic:
 
         for id, cls in enumerate(labels):
             mask[masks[id, :, :]] = PANOPTIC_PALETTE[cls]
+        t3 = time.time()
 
-        return cv2.resize(mask, dsize=[2048, 1536])
+        print("step 1: ", (t2-t1)*1000)
+        print("step 2: ", (t3-t2)*1000)
+        print("step total: ", (t3-t1)*1000)
+        return cv2.resize(mask, dsize=raw_img_shape)
 
