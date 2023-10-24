@@ -7,7 +7,7 @@ import open3d.core as o3c
 import open3d.visualization.gui as gui
 import open3d.visualization.rendering as rendering
 
-from server import RgbdServer
+from keti_server import RgbdServer
 from o3d_recon import RealtimeRecon
 
 
