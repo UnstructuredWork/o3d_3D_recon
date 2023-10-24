@@ -123,8 +123,6 @@ class ReconROS:
 
     @thread_method
     def _keyboard(self):
-        press_key = ""
-        release_key = ""
 
         def on_press(key):
             pass
