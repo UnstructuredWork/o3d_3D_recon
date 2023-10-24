@@ -50,7 +50,7 @@ class Panoptic:
                  device: str = '0',
                  threshold: float = 0.8):
 
-        self.device = torch.device('cuda:'+device)
+        self.device = torch.device('cuda:' + device)
 
         self.model_cfg = config
         self.model_chk = self.load_model(checkpoint, './panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.pth')

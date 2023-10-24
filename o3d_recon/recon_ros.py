@@ -42,8 +42,6 @@ class ReconROS:
         self.depth = None
         self.color_pan = None
 
-        self.stop = False
-
         self.ros = RosPublisher(node_name, topic_name, frame_id)
 
         self.recon_raw = recon_data('raw')
@@ -55,7 +53,7 @@ class ReconROS:
             self.panoptic = Panoptic('./panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py',
                                      'https://download.openmmlab.com/mmdetection/v3.0/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic/mask2former_r50_8xb2-lsj-50e_coco-panoptic_20230118_125535-54df384a.pth',
                                      classes=[i for i in range(80, 133)],
-                                     device='0')
+                                     device=device)
             self.run_pan_recon()
 
         self._keyboard()
@@ -65,6 +63,14 @@ class ReconROS:
     def update(self, color, depth):
         self.color = color
         self.depth = depth
+
+    def publish_ros(self, data='raw'):
+        if data == 'raw':
+            self.ros.send_ros(self.recon_raw.pcd)
+        elif data == 'panoptic':
+            self.ros.send_ros(self.recon_pan.pcd)
+        else:
+            print('publish_ros - data type error')
 
     @thread_method
     def run_raw_recon(self):
@@ -126,21 +132,10 @@ class ReconROS:
 
         def on_press(key):
             pass
-            # try:
-            #     print("Alphanumeric key pressed: {0} ".format(key.char))
-            # except AttributeError:
-            #     print("special key pressed: {0}".format(key))
 
         def on_release(key):
 
-            # print("Key released: {0}".format(key))
-            # print(key, type(key))
             if key == keyboard.Key.esc:
-                self.stop = True
-            # elif key == keyboard.KeyCode.:
-            #     self.stop = True
-
-            if self.stop:
                 self.ros.shutdown_ros()
 
                 return False
