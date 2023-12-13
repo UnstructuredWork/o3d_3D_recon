@@ -38,7 +38,7 @@ while True:
 time.sleep(1)
 
 def main():
-    slam = ReconROS(intrinsic=intrinsic, voxel_size=0.005, panoptic=False, device='0')
+    slam = ReconROS(intrinsic=intrinsic, voxel_size=0.005, panoptic=False, device='0') # panoptic True False로 RGB, PANOPTIC 구분
     while True:
         if slam.recon_raw.ready:
 
