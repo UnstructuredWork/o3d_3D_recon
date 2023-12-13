@@ -1,5 +1,0 @@
-setuptools
-numpy
-opencv-python
-open3d
-pynput
