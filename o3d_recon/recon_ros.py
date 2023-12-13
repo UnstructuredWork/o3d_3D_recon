@@ -42,6 +42,8 @@ class ReconROS:
         self.depth = None
         self.color_pan = None
 
+        self.pan = panoptic
+
         self.ros = RosPublisher(node_name, topic_name, frame_id)
 
         self.recon_raw = recon_data('raw')
@@ -49,12 +51,12 @@ class ReconROS:
 
         self.run_raw_recon()
 
-        if panoptic:
-            self.panoptic = Panoptic('./panoptic/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py',
-                                     'https://download.openmmlab.com/mmdetection/v3.0/mask2former/mask2former_r50_8xb2-lsj-50e_coco-panoptic/mask2former_r50_8xb2-lsj-50e_coco-panoptic_20230118_125535-54df384a.pth',
-                                     classes=[i for i in range(80, 133)],
+        if self.pan:
+            self.panoptic = Panoptic('./panoptic/mask2former_custom/mask2former_r50_8xb2-lsj-50e_coco-panoptic.py',
+                                     './panoptic/mask2former_custom/iter_5000.pth',
+                                     classes=[i for i in range(0, 12)],
                                      device=device)
-            self.run_pan_recon()
+            # self.run_pan_recon() # self.run_raw_recon()에서 panoptic 실행
 
         self._keyboard()
 
@@ -84,7 +86,11 @@ class ReconROS:
                 if self.color is not None and self.depth is not None:
 
                     try:
-                        self.recon_raw.color = self.color
+                        if self.pan:
+                            self.recon_raw.color = self.panoptic.get_panoptic(self.color)
+                        else:
+                            self.recon_raw.color = self.color
+
                         self.recon_raw.depth = self.depth
 
                         self.recon_raw.pcd = self.recon_raw.model.update(self.recon_raw.color, self.recon_raw.depth)
@@ -101,31 +107,31 @@ class ReconROS:
 
             time.sleep(0.5)
 
-    @thread_method
-    def run_pan_recon(self):
-        self.recon_pan.model = RealtimeReconstruction(self.intrinsic, self.voxel_size, self.device)
-        self.recon_pan.ready = True
-
-        while True:
-            while self.recon_pan.ready and self.recon_raw.run:
-                if self.color is not None and self.depth is not None:
-
-                    try:
-                        self.recon_pan.color = self.panoptic.get_panoptic(self.color)
-                        self.recon_pan.depth = self.depth
-
-                        self.recon_pan.pcd = self.recon_pan.model.update(self.recon_pan.color, self.recon_pan.depth)
-                        self.recon_pan.run = True
-
-                    except Exception as e:
-                        self.recon_pan.error = e
-                        self.recon_pan.run = False
-
-                else:
-                    self.recon_pan.run = False
-                    time.sleep(0.2)
-
-            time.sleep(0.5)
+    # @thread_method         # self.run_raw_recon()에서 panoptic 실행
+    # def run_pan_recon(self):
+    #     self.recon_pan.model = RealtimeReconstruction(self.intrinsic, self.voxel_size, self.device)
+    #     self.recon_pan.ready = True
+    #
+    #     while True:
+    #         while self.recon_pan.ready and self.recon_raw.run:
+    #             if self.color is not None and self.depth is not None:
+    #
+    #                 try:
+    #                     self.recon_pan.color = self.panoptic.get_panoptic(self.color)
+    #                     self.recon_pan.depth = self.depth
+    #
+    #                     self.recon_pan.pcd = self.recon_pan.model.update(self.recon_pan.color, self.recon_pan.depth)
+    #                     self.recon_pan.run = True
+    #
+    #                 except Exception as e:
+    #                     self.recon_pan.error = e
+    #                     self.recon_pan.run = False
+    #
+    #             else:
+    #                 self.recon_pan.run = False
+    #                 time.sleep(0.2)
+    #
+    #         time.sleep(0.5)
 
     @thread_method
     def _keyboard(self):
