@@ -5,6 +5,7 @@ panoptic_model --> [download](https://drive.google.com/file/d/1X9vFCsLzAAvEHxAQA
 
 ## classes
 ### thing_classes
-#### background circular_valve straight_valve fire_hydrant fire_extinguisher fire_extinguisher_box manometer control_box emergency_stop_switch warning_light 
+#### background circular_valve straight_valve fire_hydrant fire_extinguisher 
+#### fire_extinguisher_box manometer control_box emergency_stop_switch warning_light
 ### stuff_classes
 #### wall-other-merged floor-other-merged
