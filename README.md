@@ -10,3 +10,26 @@ Open3D Realtime 3D reconstruction based on AI Model
 ##### 6. fire_extinguisher_box 7. manometer 8. control_box 9. emergency_stop_switch 10. warning_light
 #### stuff_classes
 ##### 11. wall-other-merged 12. floor-other-merged
+
+***
+### File Path
+```bash
+o3d_3D_recon
+├── o3d_recon
+├── panoptic
+│ ├── _base_
+│ ├── mask2former
+│ ├── mask2former_custom
+│ │ ├── mask2former_r50_8xb2-lsj-50e_coco-panoptic.py
+│ │ └── iter_5000.pth
+│ └── panoptic.py 
+├── test
+├── README.md
+├── gui.py
+├── install.sh
+├── main.py
+├── requirements.txt
+├── ros_test.py
+└── setup.py
+```
+***
