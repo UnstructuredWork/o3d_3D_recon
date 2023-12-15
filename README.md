@@ -3,7 +3,8 @@ Open3D Realtime 3D reconstruction based on AI Model
 
 ## panoptic_model
 ### 1) [download](https://drive.google.com/file/d/1X9vFCsLzAAvEHxAQA2yaZBHKyjpYz84p/view?usp=drive_link)
-or NAS/Dataset/panotpic_model/mask2former_r50_8xb2-lsj-50e_coco-panoptic.zip  After unzip the ~-panotic.zip file, move to <root>/o3d_3D_recon/panoptic/mask2former_custom/
+or NAS/Dataset/panotpic_model/mask2former_r50_8xb2-lsj-50e_coco-panoptic.zip  
+After unzip the ~-panotic.zip file, move to <root>/o3d_3D_recon/panoptic/mask2former_custom/
 
 ### 2) classes
 #### thing_classes
