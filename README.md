@@ -14,7 +14,7 @@ or NAS/Dataset/panotpic_model/mask2former_r50_8xb2-lsj-50e_coco-panoptic.zip
 ##### 11. wall-other-merged 12. floor-other-merged
 
 ***
-## File Path
+## file_path
 create a 'mask2former_custom' directory and put download files in it
 ```bash
 o3d_3D_recon
