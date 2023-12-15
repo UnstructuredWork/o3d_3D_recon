@@ -13,7 +13,7 @@ Open3D Realtime 3D reconstruction based on AI Model
 
 ***
 ## File Path
-### create a 'mask2former_custom' directory and put download files in it
+create a 'mask2former_custom' directory and put download files in it
 ```bash
 o3d_3D_recon
 ├── o3d_recon
